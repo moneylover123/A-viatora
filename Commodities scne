@@ -1,0 +1,151 @@
+export function drawCommodities(ctx, W, H, t, alpha, sceneStart, state) {
+  if (alpha <= 0) return
+  const st = t - sceneStart
+  const sd = 4000
+  const p = Math.min(1, st / sd)
+  ctx.save(); ctx.globalAlpha = alpha
+  const CX = W / 2, CY = H / 2
+  const bw = W * 0.13, bh = H * 0.54
+  const bx = CX - bw / 2, by = CY - bh / 2 + H * 0.02, by2 = by + bh
+
+  const fillP = Math.min(1, p / 0.46)
+  const oilTop = by2 - (bh - 8) * fillP
+
+  // Barrel shadow
+  ctx.beginPath()
+  ctx.ellipse(CX, by2 + 9, bw * 0.5, 10, 0, 0, Math.PI * 2)
+  ctx.fillStyle = 'rgba(0,0,0,0.45)'; ctx.fill()
+
+  // Oil fill (clipped)
+  ctx.save()
+  ctx.beginPath()
+  if (ctx.roundRect) ctx.roundRect(bx + 3, by + 3, bw - 6, bh - 6, 8)
+  else ctx.rect(bx + 3, by + 3, bw - 6, bh - 6)
+  ctx.clip()
+  if (fillP > 0.02) {
+    const oilGrd = ctx.createLinearGradient(bx, oilTop, bx + bw, by2)
+    oilGrd.addColorStop(0, '#1a0800'); oilGrd.addColorStop(1, '#090300')
+    ctx.fillStyle = oilGrd; ctx.fillRect(bx + 3, oilTop, bw - 6, by2 - oilTop - 3)
+    // Surface sheen
+    ctx.beginPath(); ctx.ellipse(CX, oilTop, bw * 0.42, 4, 0, 0, Math.PI * 2)
+    const sheenGrd = ctx.createRadialGradient(CX - bw * 0.1, oilTop, 0, CX, oilTop, bw * 0.42)
+    sheenGrd.addColorStop(0, 'rgba(100,50,0,0.55)'); sheenGrd.addColorStop(1, 'rgba(20,10,0,0)')
+    ctx.fillStyle = sheenGrd; ctx.fill()
+  }
+  ctx.restore()
+
+  // Barrel body
+  const barGrd = ctx.createLinearGradient(bx, 0, bx + bw, 0)
+  barGrd.addColorStop(0, '#222'); barGrd.addColorStop(0.3, '#484848')
+  barGrd.addColorStop(0.7, '#383838'); barGrd.addColorStop(1, '#181818')
+  ctx.beginPath()
+  if (ctx.roundRect) ctx.roundRect(bx, by, bw, bh, 10)
+  else ctx.rect(bx, by, bw, bh)
+  ctx.fillStyle = barGrd; ctx.fill()
+  ctx.strokeStyle = '#555'; ctx.lineWidth = 2; ctx.stroke()
+
+  // Bands
+  ;[0.22, 0.5, 0.78].forEach(bf => {
+    const bandY = by + bh * bf
+    const bdGrd = ctx.createLinearGradient(bx, 0, bx + bw, 0)
+    bdGrd.addColorStop(0, '#2a2a2a'); bdGrd.addColorStop(0.5, '#666'); bdGrd.addColorStop(1, '#1e1e1e')
+    ctx.fillStyle = bdGrd; ctx.fillRect(bx, bandY - 3.5, bw, 7)
+  })
+
+  // OIL label
+  ctx.fillStyle = 'rgba(130,130,130,0.38)'
+  ctx.font = `bold ${Math.floor(bw * 0.28)}px 'Orbitron'`
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
+  ctx.fillText('OIL', CX, CY + 8)
+  ctx.textBaseline = 'alphabetic'
+
+  // GOLD BAR DROP
+  if (p > 0.45) {
+    const dp = Math.min(1, (p - 0.45) / 0.22)
+    const eased = 1 - Math.pow(1 - dp, 3)
+    const gw = bw * 0.72, gh = bh * 0.1
+    const gStartY = by - gh - 65
+    const gEndY = oilTop - gh * 0.2
+    const gy = gStartY + (gEndY - gStartY) * eased
+    const gx = CX - gw / 2
+
+    ctx.shadowColor = 'rgba(255,215,0,0.35)'; ctx.shadowBlur = 16
+    const goldGrd = ctx.createLinearGradient(gx, gy, gx + gw, gy + gh)
+    goldGrd.addColorStop(0, '#fff4aa'); goldGrd.addColorStop(0.3, '#c9980e')
+    goldGrd.addColorStop(0.7, '#a87c08'); goldGrd.addColorStop(1, '#7a5200')
+    ctx.beginPath()
+    if (ctx.roundRect) ctx.roundRect(gx, gy, gw, gh, 3)
+    else ctx.rect(gx, gy, gw, gh)
+    ctx.fillStyle = goldGrd; ctx.fill()
+    ctx.strokeStyle = '#6a4800'; ctx.lineWidth = 1.5; ctx.stroke()
+    ctx.shadowBlur = 0
+
+    // Shine sweep
+    const sx = gx + gw * (0.25 + Math.sin(st * 0.003) * 0.18)
+    ctx.save()
+    ctx.beginPath()
+    if (ctx.roundRect) ctx.roundRect(gx, gy, gw, gh, 3)
+    else ctx.rect(gx, gy, gw, gh)
+    ctx.clip()
+    const shGrd = ctx.createLinearGradient(sx, gy, sx + gw * 0.18, gy + gh)
+    shGrd.addColorStop(0, 'rgba(255,255,200,0)'); shGrd.addColorStop(0.5, 'rgba(255,255,200,0.5)'); shGrd.addColorStop(1, 'rgba(255,255,200,0)')
+    ctx.fillStyle = shGrd; ctx.fillRect(sx, gy, gw * 0.18, gh)
+    ctx.restore()
+
+    ctx.fillStyle = 'rgba(70,42,0,0.85)'
+    ctx.font = `bold ${Math.floor(gh * 0.44)}px 'Orbitron'`
+    ctx.textAlign = 'center'
+    ctx.fillText('GOLD', CX, gy + gh * 0.72)
+
+    // Trigger splash
+    if (dp > 0.87 && !state.splashed) {
+      state.splashed = true
+      const iy = gEndY + gh * 0.4
+      for (let i = 0; i < 52; i++) {
+        const ang = -Math.PI / 2 + (Math.random() - 0.5) * Math.PI * 1.6
+        const spd = 2.5 + Math.random() * 5.5
+        state.parts.push({
+          x: CX + (Math.random() - 0.5) * gw * 0.3,
+          y: iy,
+          vx: Math.cos(ang) * spd,
+          vy: Math.sin(ang) * spd - 1.8,
+          life: 1,
+          sz: 1 + Math.random() * 3.5,
+          gold: Math.random() > 0.55,
+        })
+      }
+      for (let i = 0; i < 7; i++) {
+        state.ripples.push({ r: 2, maxR: bw * (0.18 + i * 0.14), life: 1, y: iy })
+      }
+    }
+
+    // Draw particles
+    state.parts.forEach(pt => {
+      pt.x += pt.vx * 0.95; pt.y += pt.vy * 0.95
+      pt.vy += 0.22; pt.life = Math.max(0, pt.life - 0.013)
+      if (pt.life > 0) {
+        ctx.globalAlpha = alpha * pt.life * 0.82
+        ctx.fillStyle = pt.gold ? `rgba(200,155,0,${pt.life})` : `rgba(35,15,0,${pt.life})`
+        ctx.beginPath(); ctx.arc(pt.x, pt.y, pt.sz, 0, Math.PI * 2); ctx.fill()
+      }
+    })
+    ctx.globalAlpha = alpha
+
+    // Ripples
+    state.ripples.forEach(rp => {
+      rp.r = Math.min(rp.maxR, rp.r + 1.4)
+      rp.life = Math.max(0, rp.life - 0.014)
+      if (rp.life > 0) {
+        ctx.beginPath(); ctx.ellipse(CX, rp.y, rp.r, rp.r * 0.2, 0, 0, Math.PI * 2)
+        ctx.strokeStyle = `rgba(70,28,4,${rp.life * 0.5})`; ctx.lineWidth = 1.5; ctx.stroke()
+      }
+    })
+  }
+
+  ctx.globalAlpha = alpha
+  ctx.fillStyle = 'rgba(255,255,255,0.18)'
+  ctx.font = `${Math.floor(W * 0.013)}px 'Share Tech Mono'`
+  ctx.textAlign = 'center'
+  ctx.fillText('COMMODITIES', CX, CY + H * 0.38)
+  ctx.restore()
+}
