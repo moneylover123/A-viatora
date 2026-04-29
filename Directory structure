@@ -1,0 +1,2 @@
+mkdir -p /home/claude/aeviatora/src/{styles,components/{Hero/scenes,Dashboard,StocksList,Analysis},data}
+exit code 0
