@@ -1,0 +1,92 @@
+export function drawLogo(ctx, W, H, t, alpha, sceneStart, neutronState) {
+  if (alpha <= 0) return
+  const st = t - sceneStart
+  ctx.save(); ctx.globalAlpha = alpha
+  const CX = W / 2, CY = H / 2
+
+  const letters = 'AÉVIATOR'
+  const fontSize = Math.min(W, H) * 0.076
+  ctx.font = `900 ${fontSize}px 'Orbitron'`
+  ctx.textAlign = 'left'
+
+  const totalW = ctx.measureText(letters).width
+  const starW = fontSize * 0.78
+  const fullW = totalW + starW
+  const startX = CX - fullW / 2
+
+  const letterDelay = 180
+
+  // Draw each letter
+  letters.split('').forEach((ch, i) => {
+    const lt = st - i * letterDelay
+    if (lt <= 0) return
+    const fa = Math.min(1, lt / 380)
+    const dy = (1 - fa) * 22
+    ctx.save()
+    ctx.globalAlpha = alpha * fa
+    ctx.font = `900 ${fontSize}px 'Orbitron'`
+    ctx.textAlign = 'left'
+    ctx.fillStyle = '#ffffff'
+    ctx.shadowColor = 'rgba(0,212,255,0.5)'; ctx.shadowBlur = 14 * fa
+    // Measure position
+    const prevLetters = letters.slice(0, i)
+    const prevW = ctx.measureText(prevLetters).width
+    ctx.fillText(ch, startX + prevW, CY + fontSize * 0.18 + dy)
+    ctx.shadowBlur = 0
+    ctx.restore()
+  })
+
+  // Neutron star in place of final A
+  const starT = st - letters.length * letterDelay
+  if (starT > 0) {
+    const starFa = Math.min(1, starT / 380)
+    const starX = startX + totalW + starW * 0.42
+    const starY = CY + fontSize * 0.18 - fontSize * 0.36
+    const sr = fontSize * 0.36
+
+    ctx.save(); ctx.globalAlpha = alpha * starFa
+
+    neutronState.logoAngle = (neutronState.logoAngle || 0) + 0.055
+
+    const na = neutronState.logoAngle
+
+    // Beams
+    for (let b = 0; b < 2; b++) {
+      const ba = na + b * Math.PI
+      const bl = sr * 2.4
+      const bGrd = ctx.createLinearGradient(starX, starY, starX + Math.cos(ba) * bl, starY + Math.sin(ba) * bl)
+      bGrd.addColorStop(0, 'rgba(200,230,255,0.65)'); bGrd.addColorStop(1, 'rgba(200,230,255,0)')
+      ctx.beginPath(); ctx.moveTo(starX, starY)
+      ctx.lineTo(starX + Math.cos(ba) * bl, starY + Math.sin(ba) * bl)
+      ctx.strokeStyle = bGrd; ctx.lineWidth = 1.8; ctx.stroke()
+    }
+
+    // Accretion ring
+    ctx.save(); ctx.translate(starX, starY); ctx.rotate(na)
+    ctx.beginPath(); ctx.ellipse(0, 0, sr * 1.58, sr * 0.32, 0, 0, Math.PI * 2)
+    ctx.strokeStyle = 'rgba(155,205,255,0.28)'; ctx.lineWidth = 1.2; ctx.stroke()
+    ctx.restore()
+
+    // Core
+    const sg = ctx.createRadialGradient(starX, starY, 0, starX, starY, sr)
+    sg.addColorStop(0, '#ffffff'); sg.addColorStop(0.25, '#eef5ff')
+    sg.addColorStop(0.6, '#6090ff'); sg.addColorStop(1, 'rgba(40,60,200,0)')
+    ctx.beginPath(); ctx.arc(starX, starY, sr, 0, Math.PI * 2)
+    ctx.fillStyle = sg; ctx.shadowColor = '#88b8ff'; ctx.shadowBlur = 22
+    ctx.fill(); ctx.shadowBlur = 0
+    ctx.restore()
+  }
+
+  // Tagline
+  const tagT = st - (letters.length * letterDelay + 900)
+  if (tagT > 0) {
+    const tagFa = Math.min(1, tagT / 700)
+    ctx.save(); ctx.globalAlpha = alpha * tagFa * 0.62
+    ctx.font = `${Math.floor(fontSize * 0.175)}px 'Share Tech Mono'`
+    ctx.textAlign = 'center'; ctx.fillStyle = 'rgba(255,255,255,0.55)'
+    ctx.fillText('TRADE EVERYTHING  ·  ONE PLATFORM', CX, CY + fontSize * 0.85)
+    ctx.restore()
+  }
+
+  ctx.restore()
+}
