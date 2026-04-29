@@ -1,0 +1,61 @@
+export function drawNeutron(ctx, W, H, t, alpha, sceneStart, state) {
+  if (alpha <= 0) return
+  const st = t - sceneStart
+  const sd = 3800
+  const p = Math.min(1, st / sd)
+  const slowdown = Math.max(0.45, 1 - p * 0.72)
+
+  ctx.save(); ctx.globalAlpha = alpha
+  const CX = W / 2, CY = H / 2
+  const R = Math.min(W, H) * 0.1
+
+  state.angle = (state.angle || 0) + 0.08 * slowdown
+  state.beam = (state.beam || 0) + 0.042 * slowdown
+  const { angle, beam } = state
+
+  // Gravitational lensing rings
+  for (let ring = 1; ring <= 5; ring++) {
+    const rR = R * (1.55 + ring * 0.62)
+    const distort = Math.sin(angle * 2.2 + ring) * 0.028
+    ctx.beginPath()
+    ctx.ellipse(CX, CY, rR * (1 + distort), rR * (1 - distort * 0.45), angle * 0.09, 0, Math.PI * 2)
+    ctx.strokeStyle = `rgba(110,185,255,${0.055 / ring})`; ctx.lineWidth = 1; ctx.stroke()
+  }
+
+  // Pulsar beams
+  for (let b = 0; b < 2; b++) {
+    const ba = beam + b * Math.PI
+    const bLen = Math.min(W, H) * 0.42 * (1 - p * 0.28)
+    const bGrd = ctx.createLinearGradient(
+      CX, CY,
+      CX + Math.cos(ba) * bLen, CY + Math.sin(ba) * bLen
+    )
+    bGrd.addColorStop(0, 'rgba(160,220,255,0.72)'); bGrd.addColorStop(1, 'rgba(160,220,255,0)')
+    ctx.beginPath(); ctx.moveTo(CX, CY)
+    ctx.lineTo(CX + Math.cos(ba) * bLen, CY + Math.sin(ba) * bLen)
+    ctx.strokeStyle = bGrd; ctx.lineWidth = 2.5; ctx.stroke()
+  }
+
+  // Accretion disk
+  ctx.save(); ctx.translate(CX, CY); ctx.rotate(angle)
+  for (let i = 0; i < 3; i++) {
+    const dr = R * (1.45 + i * 0.32)
+    ctx.beginPath(); ctx.ellipse(0, 0, dr, dr * 0.24, 0, 0, Math.PI * 2)
+    const dGrd = ctx.createLinearGradient(-dr, 0, dr, 0)
+    dGrd.addColorStop(0, 'rgba(100,155,255,0)')
+    dGrd.addColorStop(0.3, `rgba(155,205,255,${0.16 - i * 0.03})`)
+    dGrd.addColorStop(0.7, `rgba(210,170,100,${0.13 - i * 0.03})`)
+    dGrd.addColorStop(1, 'rgba(210,170,100,0)')
+    ctx.strokeStyle = dGrd; ctx.lineWidth = 2; ctx.stroke()
+  }
+  ctx.restore()
+
+  // Core glow
+  const cGrd = ctx.createRadialGradient(CX, CY, 0, CX, CY, R)
+  cGrd.addColorStop(0, '#ffffff'); cGrd.addColorStop(0.18, '#eef5ff')
+  cGrd.addColorStop(0.55, '#6090ff'); cGrd.addColorStop(1, 'rgba(40,60,200,0)')
+  ctx.beginPath(); ctx.arc(CX, CY, R, 0, Math.PI * 2)
+  ctx.fillStyle = cGrd; ctx.shadowColor = '#88b8ff'; ctx.shadowBlur = 35
+  ctx.fill(); ctx.shadowBlur = 0
+  ctx.restore()
+}
