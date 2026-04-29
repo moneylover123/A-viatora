@@ -1,0 +1,73 @@
+export function drawStocks(ctx, W, H, t, alpha) {
+  if (alpha <= 0) return
+  ctx.save()
+  ctx.globalAlpha = alpha
+  const CX = W / 2, CY = H / 2
+
+  // 3D perspective grid
+  ctx.strokeStyle = 'rgba(255,255,255,0.07)'
+  ctx.lineWidth = 0.5
+  for (let i = 0; i <= 8; i++) {
+    const x = CX - W * 0.38 + i * (W * 0.76 / 8)
+    ctx.beginPath()
+    ctx.moveTo(x, CY - H * 0.28)
+    ctx.lineTo(CX + (x - CX) * 0.25, CY + H * 0.28)
+    ctx.stroke()
+  }
+  for (let j = 0; j <= 5; j++) {
+    const frac = j / 5
+    const y = CY - H * 0.28 + frac * H * 0.56
+    const xs = CX - W * 0.38 + frac * 0.3 * W * 0.38
+    const xe = CX + W * 0.38 - frac * 0.3 * W * 0.38
+    ctx.beginPath(); ctx.moveTo(xs, y); ctx.lineTo(xe, y); ctx.stroke()
+  }
+
+  // Candles
+  const N = 22
+  const bw = (W * 0.72) / N
+  for (let i = 0; i < N; i++) {
+    const ph = i * 0.72 + t * 0.0016
+    const o = CY - H * 0.04 + Math.sin(ph) * H * 0.17
+    const c = CY - H * 0.04 + Math.sin(ph + 0.85) * H * 0.17
+    const hi = Math.min(o, c) - Math.abs(Math.sin(ph * 2.1)) * H * 0.04
+    const lo = Math.max(o, c) + Math.abs(Math.sin(ph * 1.7)) * H * 0.04
+    const x = CX - W * 0.36 + i * bw + bw / 2
+    const isUp = c <= o
+    const col = isUp ? '#00ff88' : '#ff3355'
+
+    // Wick
+    ctx.strokeStyle = col; ctx.lineWidth = 1
+    ctx.beginPath(); ctx.moveTo(x, hi); ctx.lineTo(x, lo); ctx.stroke()
+
+    // Body gradient
+    const grd = ctx.createLinearGradient(x - bw * 0.3, hi, x + bw * 0.3, lo)
+    grd.addColorStop(0, isUp ? 'rgba(0,255,136,0.95)' : 'rgba(255,51,85,0.95)')
+    grd.addColorStop(1, isUp ? 'rgba(0,255,136,0.35)' : 'rgba(255,51,85,0.35)')
+    const bh = Math.max(2, Math.abs(o - c))
+    ctx.fillStyle = grd
+    ctx.fillRect(x - bw * 0.33, Math.min(o, c), bw * 0.66, bh)
+
+    // Glow
+    ctx.shadowColor = col; ctx.shadowBlur = 7
+    ctx.fillRect(x - bw * 0.33, Math.min(o, c), bw * 0.66, bh)
+    ctx.shadowBlur = 0
+  }
+
+  // Price trail
+  ctx.beginPath()
+  for (let i = 0; i < N; i++) {
+    const x = CX - W * 0.36 + i * bw + bw / 2
+    const y = CY - H * 0.04 + Math.sin(i * 0.72 + t * 0.0016 + 0.4) * H * 0.17
+    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y)
+  }
+  ctx.strokeStyle = 'rgba(0,212,255,0.55)'; ctx.lineWidth = 1.5
+  ctx.shadowColor = '#00d4ff'; ctx.shadowBlur = 8
+  ctx.stroke(); ctx.shadowBlur = 0
+
+  // Label
+  ctx.fillStyle = 'rgba(255,255,255,0.18)'
+  ctx.font = `${Math.floor(W * 0.013)}px 'Share Tech Mono'`
+  ctx.textAlign = 'center'
+  ctx.fillText('STOCKS', CX, CY + H * 0.36)
+  ctx.restore()
+}
